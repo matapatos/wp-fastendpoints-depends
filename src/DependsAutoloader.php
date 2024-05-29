@@ -6,8 +6,10 @@ use WP_Rewrite;
 
 /**
  * Holds logic to load plugins as dependencies for REST endpoints
- * @author
- * @link https://roots.io/
+ *
+ * @author André Gil <andre_gil22@hotmail.com>
+ *
+ * @link https://github.com/matapatos/wp-fastendponts-depends
  */
 class DependsAutoloader
 {
@@ -16,33 +18,64 @@ class DependsAutoloader
 
     /**
      * Prepares the plugins needed for a given REST endpoint
-     *
-     * @return void
      */
     public function load(): void
     {
-        if (!$this->canLoad()) {
+        if (! $this->canLoad()) {
             return;
         }
 
         self::$instance = $this;
-        add_filter('option_active_plugins', $this->getActivePlugins(...));
+        add_filter('option_active_plugins', $this->discardUnnecessaryPlugins(...));
     }
 
     /**
-     * Retrieves the needed
+     * Discards unnecessary plugins from a FastEndpoint
+     *
      * @internal
      */
-    public function getActivePlugins(mixed $value)
+    public function discardUnnecessaryPlugins(array $activePlugins)
     {
-        var_dump($value);
-        var_dump('yUUUUUUUUUUUUUUUUUUUUPP');
-        return $value;
+        if (! $activePlugins) {
+            return $activePlugins;
+        }
+
+        $fastEndpointsDependencies = $this->getFastEndpointDependencies();
+        foreach ($fastEndpointsDependencies as $route => $routeDependencies) {
+            if (! preg_match('@^'.$route.'$@i', $_SERVER['REQUEST_URI'], $matches)) {
+                continue;
+            }
+
+            return array_intersect($activePlugins, $routeDependencies);
+        }
+
+        return $activePlugins;
+    }
+
+    /**
+     * Retrieves the dependencies needed for a given endpoint
+     *
+     * @array<string>
+     *
+     * @return array<string,array<string>>
+     */
+    protected function getFastEndpointDependencies(): array
+    {
+        $allEndpoints = get_option('fastendpoints_dependencies');
+        if (! $allEndpoints) {
+            return [];
+        }
+
+        $method = $_SERVER['REQUEST_METHOD'];
+        if (! isset($allEndpoints[$method])) {
+            return [];
+        }
+
+        return $allEndpoints[$method];
     }
 
     /**
      * Checks if autoloader can be loaded
-     * @return bool
      */
     protected function canLoad(): bool
     {
@@ -52,7 +85,7 @@ class DependsAutoloader
         }
 
         // Is it disabled?
-        if (defined('FASTENDPOINTS_DEPENDS_ENABLED') && !\FASTENDPOINTS_DEPENDS_ENABLED) {
+        if (defined('FASTENDPOINTS_DEPENDS_ENABLED') && ! \FASTENDPOINTS_DEPENDS_ENABLED) {
             return false;
         }
 
