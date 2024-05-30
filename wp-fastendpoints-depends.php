@@ -12,10 +12,6 @@
  *
  * @license MIT
  */
-if (! is_blog_installed()) {
-    return;
-}
-
 $composer = __DIR__.'/vendor/autoload.php';
 if (! file_exists($composer)) {
     wp_die(
@@ -29,4 +25,4 @@ if (! file_exists($composer)) {
 require_once $composer;
 
 $autoloader = new \Wp\FastEndpoints\Depends\DependsAutoloader();
-$autoloader->load();
+$autoloader->register();

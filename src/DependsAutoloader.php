@@ -14,14 +14,14 @@ use WP_Rewrite;
 class DependsAutoloader
 {
     /** @var static Singleton instance */
-    private static DependsAutoloader $instance;
+    protected static DependsAutoloader $instance;
 
     /**
-     * Prepares the plugins needed for a given REST endpoint
+     * Registers the filter that removes unnecessary plugins for a given REST endpoint
      */
-    public function load(): void
+    public function register(): void
     {
-        if (! $this->canLoad()) {
+        if (! $this->canRegister()) {
             return;
         }
 
@@ -75,11 +75,15 @@ class DependsAutoloader
     }
 
     /**
-     * Checks if autoloader can be loaded
+     * Checks if the autoloader can be registered
      */
-    protected function canLoad(): bool
+    protected function canRegister(): bool
     {
-        // Already loaded?
+        if (! is_blog_installed()) {
+            return false;
+        }
+
+        // Already registered?
         if (isset(self::$instance)) {
             return false;
         }
