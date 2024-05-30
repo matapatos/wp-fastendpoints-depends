@@ -24,5 +24,5 @@ if (! file_exists($composer)) {
 
 require_once $composer;
 
-$autoloader = new \Wp\FastEndpoints\Depends\DependsAutoloader();
+$autoloader = $autoloader ?? new \Wp\FastEndpoints\Depends\DependsAutoloader();
 $autoloader->register();

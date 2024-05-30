@@ -22,7 +22,11 @@
   "autoload-dev": {
     "psr-4": {
       "Wp\\FastEndpoints\\Depends\\Tests\\": "tests/"
-    }
+    },
+    "files": [
+      "tests/constants.php",
+      "tests/wp-overrides.php"
+    ]
   },
   "require-dev": {
     "mockery/mockery": "^1.6",

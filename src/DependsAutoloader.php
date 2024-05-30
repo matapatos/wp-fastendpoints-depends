@@ -13,8 +13,8 @@ use WP_Rewrite;
  */
 class DependsAutoloader
 {
-    /** @var static Singleton instance */
-    protected static DependsAutoloader $instance;
+    /** @var ?static Singleton instance */
+    protected static ?DependsAutoloader $instance = null;
 
     /**
      * Registers the filter that removes unnecessary plugins for a given REST endpoint
@@ -41,8 +41,13 @@ class DependsAutoloader
         }
 
         $fastEndpointsDependencies = $this->getFastEndpointDependencies();
+        $currentUrlPath = $this->getCurrentRequestUrlPath();
+        if (is_null($currentUrlPath)) {
+            return $activePlugins;
+        }
+
         foreach ($fastEndpointsDependencies as $route => $routeDependencies) {
-            if (! preg_match('@^'.$route.'$@i', $_SERVER['REQUEST_URI'], $matches)) {
+            if (! preg_match('@^'.$route.'$@i', $currentUrlPath, $matches)) {
                 continue;
             }
 
@@ -84,12 +89,11 @@ class DependsAutoloader
         }
 
         // Already registered?
-        if (isset(self::$instance)) {
+        if (self::$instance) {
             return false;
         }
 
-        // Is it disabled?
-        if (defined('FASTENDPOINTS_DEPENDS_ENABLED') && ! \FASTENDPOINTS_DEPENDS_ENABLED) {
+        if ($this->isDisabled()) {
             return false;
         }
 
@@ -105,7 +109,7 @@ class DependsAutoloader
      */
     protected function isRestRequest(): bool
     {
-        if (defined('REST_REQUEST') && \REST_REQUEST) {
+        if ($this->isWpRestRequestFlagEnabled()) {
             return true;
         }
 
@@ -113,14 +117,42 @@ class DependsAutoloader
             return true;
         }
 
+        $currentUrlPath = $this->getCurrentRequestUrlPath();
+        if (is_null($currentUrlPath)) {
+            return false;
+        }
+
+        $restUrl = wp_parse_url(trailingslashit(rest_url()));
+
+        return str_starts_with($currentUrlPath, $restUrl['path']);
+    }
+
+    /**
+     * Checks for the flag that toggles the plugins as dependencies behaviour
+     */
+    protected function isDisabled(): bool
+    {
+        return defined('FASTENDPOINTS_DEPENDS_ENABLED') && ! \FASTENDPOINTS_DEPENDS_ENABLED;
+    }
+
+    /**
+     * Checks for the flag that WordPress sets when handling a REST request
+     */
+    protected function isWpRestRequestFlagEnabled(): bool
+    {
+        return defined('REST_REQUEST') && \REST_REQUEST;
+    }
+
+    /**
+     * Retrieves the current request URL path
+     */
+    protected function getCurrentRequestUrlPath(): ?string
+    {
         global $wp_rewrite;
         if ($wp_rewrite === null) {
             $wp_rewrite = new WP_Rewrite();
         }
 
-        $restUrl = wp_parse_url(trailingslashit(rest_url()));
-        $currentUrl = wp_parse_url(add_query_arg([]));
-
-        return str_starts_with($currentUrl['path'] ?? '/', $restUrl['path']);
+        return wp_parse_url(add_query_arg([]))['path'];
     }
 }
