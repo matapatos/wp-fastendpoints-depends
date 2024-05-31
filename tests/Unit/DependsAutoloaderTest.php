@@ -190,7 +190,7 @@ test('Discards all plugins', function () {
         ->toBeEmpty();
 })->group('autoloader', 'discardUnnecessaryPlugins');
 
-test('Ignoring discarding if no plugins are active', function () {
+test('Ignores discarding if no plugins are active', function () {
     $autoloader = \Mockery::mock(DependsAutoloader::class)
         ->makePartial()
         ->shouldAllowMockingProtectedMethods()
@@ -199,6 +199,25 @@ test('Ignoring discarding if no plugins are active', function () {
     expect($autoloader->discardUnnecessaryPlugins([]))
         ->toBeArray()
         ->toBeEmpty();
+})->group('autoloader', 'discardUnnecessaryPlugins');
+
+test('Ignores discarding if no rest path', function () {
+    $autoloader = \Mockery::mock(DependsAutoloader::class)
+        ->makePartial()
+        ->shouldAllowMockingProtectedMethods();
+    $autoloader
+        ->shouldReceive('getFastEndpointDependencies')
+        ->once()
+        ->andReturn([
+            '/wp-json/example/v2/sample/10' => [],
+        ]);
+    $autoloader
+        ->shouldReceive('getCurrentRequestUrlPath')
+        ->once()
+        ->andReturn(null);
+
+    expect($autoloader->discardUnnecessaryPlugins(['hello-world']))
+        ->toEqual(['hello-world']);
 })->group('autoloader', 'discardUnnecessaryPlugins');
 
 test('No matching routes found to discard plugins', function () {
@@ -234,8 +253,8 @@ test('Registering autoloader', function () {
     expect(Helpers::getNonPublicClassProperty($autoloader, 'instance'))->toBeNull();
     $autoloader->register();
     expect(Helpers::getNonPublicClassProperty($autoloader, 'instance'))
-        ->toBe($autoloader);
-    expect(Filters\has('option_active_plugins', $autoloader->discardUnnecessaryPlugins(...)))
+        ->toBe($autoloader)
+        ->and(Filters\has('option_active_plugins', $autoloader->discardUnnecessaryPlugins(...)))
         ->toBe(10);
 })->group('autoloader', 'register');
 
@@ -249,8 +268,8 @@ test('Avoid register autoloader when unable', function () {
         ->getMock();
     $autoloader->register();
     expect(Helpers::getNonPublicClassProperty($autoloader, 'instance'))
-        ->toBeNull();
-    expect(Filters\has('option_active_plugins', $autoloader->discardUnnecessaryPlugins(...)))
+        ->toBeNull()
+        ->and(Filters\has('option_active_plugins', $autoloader->discardUnnecessaryPlugins(...)))
         ->toBeFalse();
 })->group('autoloader', 'register');
 
@@ -305,13 +324,19 @@ test('Is not a REST request when no path is defined', function () {
         ->makePartial()
         ->shouldAllowMockingProtectedMethods();
     $autoloader
-        ->shouldReceive('isWpRestRequestFlagEnabled')
-        ->once()
-        ->andReturn(false);
-    $autoloader
         ->shouldReceive('getCurrentRequestUrlPath')
         ->once()
         ->andReturn(null);
     expect(Helpers::invokeNonPublicClassMethod($autoloader, 'isRestRequest'))
         ->toBeFalse();
 })->group('autoloader', 'register');
+
+// getCurrentRequestUrlPath
+
+test('Retrieves correct URL path', function (?string $path) {
+    Functions\when('add_query_arg')->justReturn(['path' => $path]);
+    Functions\when('wp_parse_url')->returnArg();
+    $autoloader = new DependsAutoloader();
+    expect(Helpers::invokeNonPublicClassMethod($autoloader, 'getCurrentRequestUrlPath'))
+        ->toBe($path);
+})->with(['/my-path', null])->group('autoloader', 'getCurrentRequestUrlPath');
