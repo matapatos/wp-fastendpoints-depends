@@ -32,7 +32,12 @@ We aim to support versions that haven't reached their end-of-life.
 
 ```bash
 Download plugin from WordPress store
-Activate plugin - if not using Bedrock make sure to install it as a mu-plugin [mu-plugin](LINK HERE)
+Activate plugin
 ```
+
+### Not using Bedrock?
+
+If not using Bedrock make sure to install WP-FastEndpoints-Depends plugin as a
+[mu-plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/)
 
 FastEndpoints Depends was created by **[André Gil](https://www.linkedin.com/in/andre-gil/)** and is open-sourced software licensed under the **[MIT license](https://opensource.org/licenses/MIT)**.
