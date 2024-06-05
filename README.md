@@ -1,4 +1,4 @@
-# WP-FastEndpoints
+# WP-FastEndpoints-Depends
 
 <img src="https://raw.githubusercontent.com/matapatos/wp-fastendpoints-depends/main/docs/images/wp-fastendpoints-depends-wallpaper.png" alt="Treating plugins as dependencies">
 <p align="center">
