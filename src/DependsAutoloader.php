@@ -51,7 +51,7 @@ class DependsAutoloader
                 continue;
             }
 
-            return array_intersect($activePlugins, $routeDependencies);
+            return array_values(array_intersect($activePlugins, $routeDependencies));
         }
 
         return $activePlugins;

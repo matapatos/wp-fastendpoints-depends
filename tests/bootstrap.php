@@ -39,6 +39,21 @@ if (! file_exists(dirname(__FILE__, 2).'/wp/tests/phpunit/wp-tests-config.php'))
     file_put_contents($testConfigPath, $testConfigContents);
 }
 
+require_once dirname(__FILE__, 2).'/wp/tests/phpunit/includes/functions.php';
+
+/**
+ * Manually load the plugin being tested.
+ */
+function _manually_load_plugin()
+{
+    // Force register autoloader
+    if (!defined('REST_REQUEST')) {
+        define('REST_REQUEST', true);
+    }
+    require dirname(__DIR__).'/wp-fastendpoints-depends.php';
+}
+tests_add_filter('muplugins_loaded', '_manually_load_plugin');
+
 // Give access to tests_add_filter() function.
 require_once dirname(__FILE__, 2).'/wp/tests/phpunit/includes/functions.php';
 
