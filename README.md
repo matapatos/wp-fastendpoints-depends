@@ -30,10 +30,8 @@ We aim to support versions that haven't reached their end-of-life.
 
 ## Installation
 
-```bash
-Download plugin from WordPress store
-Activate plugin
-```
+1. Download plugin from WordPress store
+2. Activate plugin
 
 ### Not using Bedrock?
 
