@@ -58,5 +58,17 @@
       "composer/installers": true,
       "pestphp/pest-plugin": true
     }
+  },
+  "extra": {
+    "mozart": {
+      "dep_namespace": "Wp\\FastEndpoints\\Depends\\Dependencies\\",
+      "dep_directory": "/src/Dependencies/",
+      "classmap_directory": "/src/Classes/",
+      "classmap_prefix": "FED_",
+      "packages": [
+        "composer/installers"
+      ],
+      "delete_vendor_directories": true
+    }
   }
 }
