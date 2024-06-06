@@ -3,10 +3,10 @@
 /**
  * Plugin Name: Fast Endpoints Depends
  * Plugin URI:  https://github.com/matapatos/wp-fastendponts-depends
- * Description: Speed up your REST endpoints by using plugins like dependencies
+ * Description: Speed up your REST endpoints by treating plugins as dependencies
  * Version:     1.0.0
  * Author:      André Gil
- * Author URI:
+ * Author URI:  https://github.com/matapatos
  *
  * @version 1.0.0
  *
