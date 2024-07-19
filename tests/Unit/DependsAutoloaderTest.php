@@ -145,7 +145,7 @@ test('Unavailable HTTP method', function (string $method) {
 // discardUnnecessaryPlugins
 
 test('Discards unnecessary plugins', function (array $activePlugins) {
-    $expectedPlugins = array_intersect($activePlugins, ['my-plugin']);
+    $expectedPlugins = array_values(array_intersect($activePlugins, ['my-plugin']));
     $autoloader = \Mockery::mock(DependsAutoloader::class)
         ->makePartial()
         ->shouldAllowMockingProtectedMethods();

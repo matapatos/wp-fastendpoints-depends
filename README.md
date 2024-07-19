@@ -4,9 +4,9 @@
 <p align="center">
     <a href="https://github.com/matapatos/wp-fastendpoints-depends/actions"><img alt="GitHub Actions Workflow Status (main)" src="https://img.shields.io/github/actions/workflow/status/matapatos/wp-fastendpoints-depends/tests.yml"></a>
     <a href="https://codecov.io/gh/matapatos/wp-fastendpoints-depends" ><img alt="Code Coverage" src="https://codecov.io/gh/matapatos/wp-fastendpoints-depends/graph/badge.svg?token=8N7N9NMGLG"/></a>
-    <a href="https://packagist.org/packages/matapatos/wp-fastendpoints"><img alt="Latest Version" src="https://img.shields.io/packagist/v/matapatos/wp-fastendpoints"></a>
+    <a href="https://en-gb.wordpress.org/plugins/fastendpoints-depends/"><img alt="WordPress Plugin Version" src="https://img.shields.io/wordpress/plugin/v/fastendpoints-depends"></a>
     <a href="https://packagist.org/packages/matapatos/wp-fastendpoints"><img alt="Supported WordPress Versions" src="https://img.shields.io/badge/6.x-versions?logo=wordpress&label=versions"></a>
-    <a href="https://opensource.org/licenses/MIT"><img alt="Software License" src="https://img.shields.io/badge/MIT"></a>
+    <a href="https://opensource.org/licenses/MIT"><img alt="Software License" src="https://img.shields.io/badge/MIT?label=MIT"></a>
 </p>
 
 ------
@@ -35,7 +35,7 @@ We aim to support versions that haven't reached their end-of-life.
 
 ### Not using Bedrock?
 
-If not using Bedrock make sure to install WP-FastEndpoints-Depends plugin as a
-[mu-plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/)
+If not using [Bedrock](https://roots.io/bedrock/) make sure to install WP-FastEndpoints-Depends as a
+[must-use plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/)
 
 FastEndpoints Depends was created by **[André Gil](https://www.linkedin.com/in/andre-gil/)** and is open-sourced software licensed under the **[MIT license](https://opensource.org/licenses/MIT)**.

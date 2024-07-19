@@ -14,6 +14,7 @@ namespace Wp\FastEndpoints\Depends\Tests\Unit;
 
 use Brain\Monkey;
 use Wp\FastEndpoints\Depends\DependsAutoloader;
+use Wp\FastEndpoints\Depends\FastEndpointDependenciesGenerator;
 
 beforeEach(function () {
     Monkey\setUp();
@@ -30,11 +31,17 @@ test('Check composer type', function () {
         ->toHaveKey('type', 'wordpress-muplugin');
 })->group('plugin', 'composer');
 
-test('Registering autoloader', function () {
+test('Registering both autoloader and generator', function () {
     $autoloader = \Mockery::mock(DependsAutoloader::class)
         ->shouldReceive('register')
         ->getMock();
-    require_once \PLUGIN_ROOT_DIR.'/wp-fastendpoints-depends.php';
+    $generator = \Mockery::mock(FastEndpointDependenciesGenerator::class)
+        ->shouldReceive('register')
+        ->withArgs(function (string $filepath) {
+            return file_exists($filepath) && str_ends_with($filepath, 'fastendpoints-depends.php');
+        })
+        ->getMock();
+    require_once \PLUGIN_ROOT_DIR.'/fastendpoints-depends.php';
     // Avoid "Test did not perform any assertions" message
     expect(true)->toBeTrue();
 })->group('plugin', 'register-autoloader');

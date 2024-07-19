@@ -42,11 +42,11 @@ test('Retrieves correct route dependencies', function () {
     $routeDependencies = [
         'GET' => [
             '/custom/route' => ['custom-route', 'get', 'plugin-not-active'],
-            '/fake-route' => []
+            '/fake-route' => [],
         ],
         'POST' => [
             '/custom/route' => ['custom-route', 'post'],
-        ]
+        ],
     ];
     update_option('fastendpoints_dependencies', $routeDependencies);
     update_option('active_plugins', ['my-plugin', 'custom-route', 'get']);
@@ -60,7 +60,7 @@ test('No request method. Retrieves plugins all active plugins', function () {
     $routeDependencies = [
         'POST' => [
             '/custom/route' => ['custom-route', 'post'],
-        ]
+        ],
     ];
     update_option('fastendpoints_dependencies', $routeDependencies);
     update_option('active_plugins', ['my-plugin', 'custom-route', 'put']);
@@ -74,11 +74,11 @@ test('No route dependencies. Retrieves plugins all active plugins', function () 
     $routeDependencies = [
         'GET' => [
             '/custom/route' => ['custom-route', 'get', 'plugin-not-active'],
-            '/fake-route' => []
+            '/fake-route' => [],
         ],
         'POST' => [
             '/custom/route' => ['custom-route', 'post'],
-        ]
+        ],
     ];
     update_option('fastendpoints_dependencies', $routeDependencies);
     update_option('active_plugins', ['active-plugin']);
@@ -92,7 +92,7 @@ test('Regex route. Retrieves correct dependencies', function () {
     $routeDependencies = [
         'GET' => [
             '/custom/route/(?P<ID>[\d]+)' => ['custom-route', 'get', 'plugin-not-active'],
-        ]
+        ],
     ];
     update_option('fastendpoints_dependencies', $routeDependencies);
     update_option('active_plugins', ['custom-route', 'get']);

@@ -26,3 +26,6 @@ require_once $composer;
 
 $autoloader = $autoloader ?? new \Wp\FastEndpoints\Depends\DependsAutoloader();
 $autoloader->register();
+
+$dependencies = $generator ?? new \Wp\FastEndpoints\Depends\FastEndpointDependenciesGenerator();
+$dependencies->register(__FILE__);
