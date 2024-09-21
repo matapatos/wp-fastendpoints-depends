@@ -2,6 +2,7 @@
 
 namespace Wp\FastEndpoints\Depends;
 
+use Wp\FastEndpoints\Contracts\Http\Router;
 use WP_CLI;
 
 /**
@@ -28,7 +29,7 @@ class FastEndpointDependenciesGenerator
     {
         // Update dependencies on plugin activation
         register_activation_hook($filepath, $this->update(...));
-        if (defined('WP_CLI') && \WP_CLI) {
+        if ($this->isRunningCli()) {
             WP_CLI::add_command('fast_endpoints_depends_update', $this->update(...));
         }
     }
@@ -45,12 +46,40 @@ class FastEndpointDependenciesGenerator
     /**
      * Called when a new FastEndpoints router is registered
      */
-    public function routerRegistered($router): void
+    public function routerRegistered(Router $router): void
     {
         $this->allRegisteredRouters[] = $router;
-        if (defined('WP_CLI') && \WP_CLI) {
-            $numEndpoints = count($router->getEndpoints);
+        if ($this->isRunningCli()) {
+            $numEndpoints = count($router->getEndpoints());
             WP_CLI::debug("Detected router with $numEndpoints endpoints");
+        }
+    }
+
+    /**
+     * Changes the dependencies slug with the corresponding plugin full path
+     */
+    public function changeDependenciesSlugWithPluginFullpath(array &$routersDependencies): void
+    {
+        $activePlugins = wp_get_active_and_valid_plugins();
+        foreach ($routersDependencies as $method => &$methodDependencies) {
+            foreach ($methodDependencies as $route => &$dependencies) {
+                foreach ($dependencies as &$dependency) {
+                    if (str_ends_with($dependency, '.php')) {
+                        continue;
+                    }
+
+                    foreach ($activePlugins as $pluginFilepath) {
+                        if (! str_contains($pluginFilepath, path_join(WP_PLUGIN_DIR, $dependency))) {
+                            continue;
+                        }
+
+                        if ($this->isRunningCli()) {
+                            WP_CLI::debug("[$method] $route updating dependency from $dependency to $pluginFilepath");
+                        }
+                        $dependency = $pluginFilepath;
+                    }
+                }
+            }
         }
     }
 
@@ -61,30 +90,11 @@ class FastEndpointDependenciesGenerator
     {
         $routersDependencies = $this->getDependenciesFromRouters($this->allRegisteredRouters);
         if ($routersDependencies) {
-            $activePlugins = wp_get_active_and_valid_plugins();
-            foreach ($routersDependencies as $method => $methodDependencies) {
-                foreach ($methodDependencies as $route => $dependencies) {
-                    foreach ($dependencies as &$dependency) {
-                        if (str_ends_with($dependency, '.php')) {
-                            continue;
-                        }
-
-                        foreach ($activePlugins as $pluginFilepath) {
-                            if (! str_contains($pluginFilepath, WP_PLUGIN_DIR.'/'.$dependency)) {
-                                continue;
-                            }
-
-                            if (defined('WP_CLI') && \WP_CLI) {
-                                WP_CLI::debug("[$method]$route updating dependency from $dependency to $pluginFilepath");
-                            }
-                            $dependency = $pluginFilepath;
-                        }
-                    }
-                }
-            }
+            $this->changeDependenciesSlugWithPluginFullpath($routersDependencies);
         }
+
         update_option('fastendpoints_dependencies', $routersDependencies);
-        if (defined('WP_CLI') && \WP_CLI) {
+        if ($this->isRunningCli()) {
             WP_CLI\Utils\format_items('json', $routersDependencies);
             $numRouters = count($this->allRegisteredRouters);
             WP_CLI::success("Successfully updated dependencies for $numRouters routers");
@@ -94,7 +104,8 @@ class FastEndpointDependenciesGenerator
     /**
      * Retrieves all endpoint dependencies from a set of routers
      *
-     * @return array<string>
+     * @param array<Router>
+     * @return array<string,array<string,array<string>>>
      */
     protected function getDependenciesFromRouters(array $allRouters): array
     {
@@ -116,5 +127,13 @@ class FastEndpointDependenciesGenerator
         }
 
         return $dependencies;
+    }
+
+    /**
+     * Checks if it's running via CLI
+     */
+    protected function isRunningCli(): bool
+    {
+        return defined('WP_CLI') && \WP_CLI;
     }
 }
