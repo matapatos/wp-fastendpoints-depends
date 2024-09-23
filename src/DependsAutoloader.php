@@ -150,7 +150,7 @@ class DependsAutoloader
     {
         global $wp_rewrite;
         if ($wp_rewrite === null) {
-            $wp_rewrite = new WP_Rewrite();
+            $wp_rewrite = new WP_Rewrite;
         }
 
         return wp_parse_url(add_query_arg([]))['path'];

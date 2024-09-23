@@ -15,12 +15,13 @@ namespace Wp\FastEndpoints\Depends\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
+use Mockery;
 use Wp\FastEndpoints\Depends\DependsAutoloader;
 use Wp\FastEndpoints\Depends\Tests\Helpers\Helpers;
 
 beforeEach(function () {
     Monkey\setUp();
-    $autoloader = new DependsAutoloader();
+    $autoloader = new DependsAutoloader;
     Helpers::setNonPublicClassProperty($autoloader, 'instance', null);
     unset($_SERVER['REQUEST_METHOD']);
     unset($_GET['rest_route']);
@@ -35,7 +36,7 @@ dataset('http_methods', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIO
 // Constructor
 
 test('Creating DependsAutoloader instance', function () {
-    $autoloader = new DependsAutoloader();
+    $autoloader = new DependsAutoloader;
     expect($autoloader)
         ->toBeInstanceOf(DependsAutoloader::class)
         ->and(Helpers::getNonPublicClassProperty($autoloader, 'instance'))
@@ -69,13 +70,13 @@ test('Avoid registering autoloader when it is not a REST request', function () {
 })->group('autoloader', 'canRegister');
 
 test('Avoid registering autoloader when blog is not installed', function () {
-    $autoloader = new DependsAutoloader();
+    $autoloader = new DependsAutoloader;
     Functions\when('is_blog_installed')->justReturn(false);
     expect(Helpers::invokeNonPublicClassMethod($autoloader, 'canRegister'))->toBeFalse();
 })->group('autoloader', 'canRegister');
 
 test('Avoid registering autoloader multiple times', function () {
-    $autoloader = new DependsAutoloader();
+    $autoloader = new DependsAutoloader;
     Helpers::setNonPublicClassProperty($autoloader, 'instance', $autoloader);
     Functions\when('is_blog_installed')->justReturn(true);
     expect(Helpers::invokeNonPublicClassMethod($autoloader, 'canRegister'))->toBeFalse();
@@ -96,7 +97,7 @@ test('Avoid registering autoloader when enabled flag is false', function () {
 // getFastEndpointDependencies
 
 test('Retrieving correct dependencies', function (string $method) {
-    $autoloader = new DependsAutoloader();
+    $autoloader = new DependsAutoloader;
     $_SERVER['REQUEST_METHOD'] = $method;
     $allDependencies = [
         'GET' => ['get', 'hello', 'world'],
@@ -118,7 +119,7 @@ test('Retrieving correct dependencies', function (string $method) {
 })->with('http_methods')->group('autoloader', 'getFastEndpointDependencies');
 
 test('No dependencies saved', function () {
-    $autoloader = new DependsAutoloader();
+    $autoloader = new DependsAutoloader;
     Functions\expect('get_option')
         ->once()
         ->with('fastendpoints_dependencies')
@@ -130,7 +131,7 @@ test('No dependencies saved', function () {
 })->group('autoloader', 'getFastEndpointDependencies');
 
 test('Unavailable HTTP method', function (string $method) {
-    $autoloader = new DependsAutoloader();
+    $autoloader = new DependsAutoloader;
     $_SERVER['REQUEST_METHOD'] = $method;
     Functions\expect('get_option')
         ->once()
@@ -336,7 +337,8 @@ test('Is not a REST request when no path is defined', function () {
 test('Retrieves correct URL path', function (?string $path) {
     Functions\when('add_query_arg')->justReturn(['path' => $path]);
     Functions\when('wp_parse_url')->returnArg();
-    $autoloader = new DependsAutoloader();
+    Mockery::mock('alias:WP_Rewrite');
+    $autoloader = new DependsAutoloader;
     expect(Helpers::invokeNonPublicClassMethod($autoloader, 'getCurrentRequestUrlPath'))
         ->toBe($path);
 })->with(['/my-path', null])->group('autoloader', 'getCurrentRequestUrlPath');
