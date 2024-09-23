@@ -19,6 +19,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Wp\FastEndpoints\Depends\FastEndpointDependenciesGenerator;
 use Wp\FastEndpoints\Depends\Tests\Helpers\Helpers;
+use Wp\FastEndpoints\Router;
 
 beforeEach(function () {
     Monkey\setUp();
@@ -205,25 +206,40 @@ test('Updates dependencies option via CLI', function () {
 // getDependenciesFromRouters
 
 test('Retrieving dependencies from routers', function () {
+    Functions\expect('register_rest_route');
     $generator = new FastEndpointDependenciesGenerator;
-    $firstRouter = Mockery::mock('alias:Wp\FastEndpoints\Contracts\Http\Router')
-        ->shouldReceive('getEndpoints')
-        ->once()
-        ->andReturn($firstRouterEndpoints)
-        ->getMock()
-        ->shouldReceive('getSubRouters')
-        ->once()
-        ->andReturn([]);
-    $secondRouter = Mockery::mock('alias:Wp\FastEndpoints\Contracts\Http\Router')
-        ->shouldReceive('getEndpoints')
-        ->once()
-        ->andReturn($secondRouterEndpoints)
-        ->getMock()
-        ->shouldReceive('getSubRouters')
-        ->once()
-        ->andReturn([]);
-    $routers = [
+    $firstRouter = new Router('api', 'v1');
+    $firstRouter->get('/first', function () {
+        return true;
+    })->depends(['hey']);
 
-    ];
+    $subRouter = new Router('posts');
+    $subRouter->get('/posts', function () {
+        return true;
+    })->depends(['full-path.php', 'posts']);
+    $firstRouter->includeRouter($subRouter);
+
+    $secondRouter = new Router('api', 'v2');
+    $secondRouter->post('/second', function () {
+        return true;
+    })->depends(['second']);
+
+    // Trigger endpoint creation
+    $firstRouter->register();
+    $secondRouter->register();
+    $firstRouter->registerEndpoints();
+    $subRouter->registerEndpoints();
+    $secondRouter->registerEndpoints();
+
+    $routers = [$firstRouter, $secondRouter];
     $dependencies = Helpers::invokeNonPublicClassMethod($generator, 'getDependenciesFromRouters', $routers);
+    expect($dependencies)
+        ->toBeArray()
+        ->toMatchArray([
+            'GET' => [
+                '/api/v1/first' => ['hey'],
+                '/api/v1/posts/posts' => ['full-path.php', 'posts'],
+            ],
+            'POST' => ['/api/v2/second' => ['second']],
+        ]);
 })->group('generator', 'getDependenciesFromRouters');

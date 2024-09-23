@@ -33,7 +33,8 @@
     "dingo-d/wp-pest": "^1.6",
     "brain/monkey": "2.*",
     "laravel/pint": "*",
-    "pestphp/pest-plugin-parallel": "^1.2"
+    "pestphp/pest-plugin-parallel": "^1.2",
+    "matapatos/wp-fastendpoints": "^2.0"
   },
   "scripts": {
     "lint": "./vendor/bin/pint --config pint.json",
