@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Wp\FastEndpoints\Depends\Tests\Integration;
 
+use Wp\FastEndpoints\Depends\DependenciesGenerator;
 use Wp\FastEndpoints\Depends\Tests\Helpers\Helpers;
 use Yoast\WPTestUtils\WPIntegration\TestCase;
 
@@ -28,76 +29,46 @@ uses(TestCase::class);
 
 beforeEach(function () {
     parent::setUp();
+
+    // Set up a REST server instance.
+    global $wp_rest_server;
+    $this->server = $wp_rest_server = new \WP_REST_Server;
+
+    $fastEndpointsRouter = Helpers::getRouter('FastEndpointsRouter.php');
+    $fastEndpointsRouter->register();
+
+    include \ROUTERS_DIR.'NativeWpEndpoints.php';
+
+    do_action('rest_api_init', $this->server);
 });
 
 afterEach(function () {
-    parent::tearDown();
-    delete_option('fastendpoints_dependencies');
+    global $wp_rest_server;
+    $wp_rest_server = null;
     delete_option('active_plugins');
-    unset($_SERVER['REQUEST_URI']);
-    unset($_SERVER['REQUEST_METHOD']);
+
+    parent::tearDown();
 });
 
-test('Retrieves correct route dependencies', function () {
-    $routeDependencies = [
-        'GET' => [
-            '/custom/route' => ['custom-route', 'get', 'plugin-not-active'],
-            '/fake-route' => [],
-        ],
-        'POST' => [
-            '/custom/route' => ['custom-route', 'post'],
-        ],
-    ];
-    update_option('fastendpoints_dependencies', $routeDependencies);
-    update_option('active_plugins', ['my-plugin', 'custom-route', 'get']);
-    $_SERVER['REQUEST_URI'] = '/custom/route';
-    $_SERVER['REQUEST_METHOD'] = 'GET';
-    expect(get_option('active_plugins'))
-        ->toEqual(['custom-route', 'get']);
-})->group('autoloader');
+test('Generates dependencies for both native WP endpoints and FastEndpoints', function () {
+    update_option('active_plugins', ['my-plugin/my-plugin.php', 'buddypress/buddypress.php']);
 
-test('No request method. Retrieves plugins all active plugins', function () {
-    $routeDependencies = [
-        'POST' => [
-            '/custom/route' => ['custom-route', 'post'],
-        ],
-    ];
-    update_option('fastendpoints_dependencies', $routeDependencies);
-    update_option('active_plugins', ['my-plugin', 'custom-route', 'put']);
-    $_SERVER['REQUEST_URI'] = '/custom/route';
-    $_SERVER['REQUEST_METHOD'] = 'PUT';
-    expect(get_option('active_plugins'))
-        ->toEqual(['my-plugin', 'custom-route', 'put']);
-})->group('autoloader');
+    $configFilePath = tempnam('/tmp', 'configs');
+    $generator = new DependenciesGenerator($configFilePath);
+    $generator->update();
 
-test('No route dependencies. Retrieves plugins all active plugins', function () {
-    $routeDependencies = [
-        'GET' => [
-            '/custom/route' => ['custom-route', 'get', 'plugin-not-active'],
-            '/fake-route' => [],
-        ],
-        'POST' => [
-            '/custom/route' => ['custom-route', 'post'],
-        ],
-    ];
-    update_option('fastendpoints_dependencies', $routeDependencies);
-    update_option('active_plugins', ['active-plugin']);
-    $_SERVER['REQUEST_URI'] = '/unknown/route';
-    $_SERVER['REQUEST_METHOD'] = 'GET';
-    expect(get_option('active_plugins'))
-        ->toEqual(['active-plugin']);
-})->group('autoloader');
-
-test('Regex route. Retrieves correct dependencies', function () {
-    $routeDependencies = [
-        'GET' => [
-            '/custom/route/(?P<ID>[\d]+)' => ['custom-route', 'get', 'plugin-not-active'],
-        ],
-    ];
-    update_option('fastendpoints_dependencies', $routeDependencies);
-    update_option('active_plugins', ['custom-route', 'get']);
-    $_SERVER['REQUEST_URI'] = '/custom/route/10';
-    $_SERVER['REQUEST_METHOD'] = 'GET';
-    expect(get_option('active_plugins'))
-        ->toEqual(['custom-route', 'get']);
-})->group('autoloader');
+    expect(file_exists($configFilePath))->toBeTrue();
+    $dependencies = include $configFilePath;
+    @unlink($configFilePath);
+    expect($dependencies)
+        ->toEqual([
+            'GET' => [
+                '/fast-endpoints/v1/(?P<ID>[\\d]+)' => ['my-plugin/my-plugin.php'],
+                '/native/v1/custom' => ['my-plugin/my-plugin.php'],
+            ],
+            'POST' => [
+                '/fast-endpoints/v1/(?P<ID>[\\d]+)' => ['buddypress/buddypress.php', 'my-plugin/my-plugin.php'],
+                '/native/v1/custom' => ['my-plugin/my-plugin.php', 'buddypress/buddypress.php'],
+            ],
+        ]);
+})->group('generator');

@@ -97,55 +97,62 @@ test('Avoid registering autoloader when enabled flag is false', function () {
 // getFastEndpointDependencies
 
 test('Retrieving correct dependencies', function (string $method) {
-    $autoloader = new DependsAutoloader;
-    $_SERVER['REQUEST_METHOD'] = $method;
     $allDependencies = [
-        'GET' => ['get', 'hello', 'world'],
-        'POST' => ['post', 'hello', '123'],
-        'PUT' => ['put', 'hello'],
-        'PATCH' => ['patch', 'hello', 'world'],
-        'DELETE' => ['delete', 'world'],
-        'HEAD' => [],
-        'OPTIONS' => ['options', 'hello', '789'],
-        'FAKE_METHOD' => ['should-never-return-this'],
+        'POST' => [
+            '/my-plugin/v1/blog-post' => ['my-plugin/my-plugin.php'],
+            '/my-plugin/v1/no-depends' => [],
+        ],
+        'GET' => [
+            '/my-plugin/v1/user' => ['my-plugin/my-plugin.php', 'buddypress/buddypress.php'],
+        ],
     ];
-    Functions\expect('get_option')
+    $_SERVER['REQUEST_METHOD'] = $method;
+    $autoloader = \Mockery::mock(DependsAutoloader::class)
+        ->makePartial()
+        ->shouldAllowMockingProtectedMethods()
+        ->shouldReceive('getConfigFilePath')
         ->once()
-        ->with('fastendpoints_dependencies')
-        ->andReturn($allDependencies);
+        ->andReturn(SAMPLE_CONFIG_FILEPATH)
+        ->getMock();
     $dependencies = Helpers::invokeNonPublicClassMethod($autoloader, 'getFastEndpointDependencies');
     expect($dependencies)
         ->toEqual($allDependencies[$method]);
-})->with('http_methods')->group('autoloader', 'getFastEndpointDependencies');
+})->with(['GET', 'POST'])->group('autoloader', 'getFastEndpointDependencies');
 
-test('No dependencies saved', function () {
-    $autoloader = new DependsAutoloader;
-    Functions\expect('get_option')
+test('No dependencies saved', function (string $returnValue) {
+    $autoloader = \Mockery::mock(DependsAutoloader::class)
+        ->makePartial()
+        ->shouldAllowMockingProtectedMethods()
+        ->shouldReceive('getConfigFilePath')
         ->once()
-        ->with('fastendpoints_dependencies')
-        ->andReturn([]);
+        ->andReturn($returnValue)
+        ->getMock();
+    $dependencies = Helpers::invokeNonPublicClassMethod($autoloader, 'getFastEndpointDependencies');
+    expect($dependencies)
+        ->toBeArray()
+        ->toBeEmpty();
+})->with([EMPTY_CONFIG_FILEPATH, '/non-existent/path.php'])->group('autoloader', 'getFastEndpointDependencies');
+
+test('Unavailable HTTP method', function () {
+    $autoloader = \Mockery::mock(DependsAutoloader::class)
+        ->makePartial()
+        ->shouldAllowMockingProtectedMethods()
+        ->shouldReceive('getConfigFilePath')
+        ->once()
+        ->andReturn(SAMPLE_CONFIG_FILEPATH)
+        ->getMock();
+    $_SERVER['REQUEST_METHOD'] = 'PUT';
     $dependencies = Helpers::invokeNonPublicClassMethod($autoloader, 'getFastEndpointDependencies');
     expect($dependencies)
         ->toBeArray()
         ->toBeEmpty();
 })->group('autoloader', 'getFastEndpointDependencies');
 
-test('Unavailable HTTP method', function (string $method) {
-    $autoloader = new DependsAutoloader;
-    $_SERVER['REQUEST_METHOD'] = $method;
-    Functions\expect('get_option')
-        ->once()
-        ->with('fastendpoints_dependencies')
-        ->andReturn(['FAKE_HTTP_METHOD' => ['should-never-return-this']]);
-    $dependencies = Helpers::invokeNonPublicClassMethod($autoloader, 'getFastEndpointDependencies');
-    expect($dependencies)
-        ->toBeArray()
-        ->toBeEmpty();
-})->with('http_methods')->group('autoloader', 'getFastEndpointDependencies');
-
 // discardUnnecessaryPlugins
 
 test('Discards unnecessary plugins', function (array $activePlugins) {
+    Functions\expect('rest_get_url_prefix')->andReturn('wp-json');
+
     $expectedPlugins = array_values(array_intersect($activePlugins, ['my-plugin']));
     $autoloader = \Mockery::mock(DependsAutoloader::class)
         ->makePartial()
@@ -154,8 +161,8 @@ test('Discards unnecessary plugins', function (array $activePlugins) {
         ->shouldReceive('getFastEndpointDependencies')
         ->once()
         ->andReturn([
-            '/wp-json/example/v2/sample/60' => ['should-not-trigger-this'],
-            '/wp-json/example/v2/sample/(?P<ID>[\d]+)' => ['my-plugin'],
+            'example/v2/sample/60' => ['should-not-trigger-this'],
+            '/example/v2/sample/(?P<ID>[\d]+)' => ['my-plugin'],
         ]);
     $autoloader
         ->shouldReceive('getCurrentRequestUrlPath')
@@ -171,6 +178,8 @@ test('Discards unnecessary plugins', function (array $activePlugins) {
 ])->group('autoloader', 'discardUnnecessaryPlugins');
 
 test('Discards all plugins', function () {
+    Functions\expect('rest_get_url_prefix')->andReturn('wp-json');
+
     $autoloader = \Mockery::mock(DependsAutoloader::class)
         ->makePartial()
         ->shouldAllowMockingProtectedMethods();
@@ -178,8 +187,8 @@ test('Discards all plugins', function () {
         ->shouldReceive('getFastEndpointDependencies')
         ->once()
         ->andReturn([
-            '/wp-json/example/v2/sample/10' => [],
-            '/wp-json/example/v2/sample/hey' => ['should-not-trigger-this'],
+            '/example/v2/sample/10' => [],
+            '/example/v2/sample/hey' => ['should-not-trigger-this'],
         ]);
     $autoloader
         ->shouldReceive('getCurrentRequestUrlPath')
@@ -210,7 +219,7 @@ test('Ignores discarding if no rest path', function () {
         ->shouldReceive('getFastEndpointDependencies')
         ->once()
         ->andReturn([
-            '/wp-json/example/v2/sample/10' => [],
+            '/example/v2/sample/10' => [],
         ]);
     $autoloader
         ->shouldReceive('getCurrentRequestUrlPath')
@@ -222,6 +231,8 @@ test('Ignores discarding if no rest path', function () {
 })->group('autoloader', 'discardUnnecessaryPlugins');
 
 test('No matching routes found to discard plugins', function () {
+    Functions\expect('rest_get_url_prefix')->andReturn('wp-json');
+
     $autoloader = \Mockery::mock(DependsAutoloader::class)
         ->makePartial()
         ->shouldAllowMockingProtectedMethods();
@@ -229,8 +240,8 @@ test('No matching routes found to discard plugins', function () {
         ->shouldReceive('getFastEndpointDependencies')
         ->once()
         ->andReturn([
-            '/wp-json/example/v2/sample/fake' => ['should-not-trigger-this'],
-            '/wp-json/yup/v2/sample/hey' => ['should-not-trigger-this'],
+            '/example/v2/sample/fake' => ['should-not-trigger-this'],
+            '/yup/v2/sample/hey' => ['should-not-trigger-this'],
         ]);
     $autoloader
         ->shouldReceive('getCurrentRequestUrlPath')
@@ -256,7 +267,7 @@ test('Registering autoloader', function () {
     expect(Helpers::getNonPublicClassProperty($autoloader, 'instance'))
         ->toBe($autoloader)
         ->and(Filters\has('option_active_plugins', $autoloader->discardUnnecessaryPlugins(...)))
-        ->toBe(10);
+        ->toBe(-99);
 })->group('autoloader', 'register');
 
 test('Avoid register autoloader when unable', function () {
@@ -342,3 +353,41 @@ test('Retrieves correct URL path', function (?string $path) {
     expect(Helpers::invokeNonPublicClassMethod($autoloader, 'getCurrentRequestUrlPath'))
         ->toBe($path);
 })->with(['/my-path', null])->group('autoloader', 'getCurrentRequestUrlPath');
+
+// Unregister
+
+test('Unregister autoloader', function () {
+    $autoloader = new DependsAutoloader;
+    Helpers::setNonPublicClassProperty($autoloader, 'instance', $autoloader);
+    Filters\expectRemoved('option_active_plugins');
+
+    $autoloader->unregister();
+    expect(Helpers::getNonPublicClassProperty($autoloader, 'instance'))
+        ->toBeNull();
+})->group('autoloader', 'unregister');
+
+// getConfigFilePath
+
+test('Retrieve config file path', function () {
+    Functions\expect('plugin_dir_path')
+        ->once()
+        ->andReturn('/plugin/src');
+
+    $autoloader = new DependsAutoloader;
+    expect(Helpers::invokeNonPublicClassMethod($autoloader, 'getConfigFilePath'))
+        ->toBe('/plugin/src/../config.php');
+})->group('autoloader', 'getConfigFilePath');
+
+test('Retrieve config file path via constant', function () {
+    define('FASTENDPOINTS_DEPENDS_CONFIG_FILEPATH', '/plugin/config.php');
+
+    $autoloader = new DependsAutoloader;
+    expect(Helpers::invokeNonPublicClassMethod($autoloader, 'getConfigFilePath'))
+        ->toBe('/plugin/config.php');
+})->group('autoloader', 'getConfigFilePath');
+
+test('Retrieve config file path via argument', function () {
+    $autoloader = new DependsAutoloader('/custom/config.php');
+    expect(Helpers::invokeNonPublicClassMethod($autoloader, 'getConfigFilePath'))
+        ->toBe('/custom/config.php');
+})->group('autoloader', 'getConfigFilePath');

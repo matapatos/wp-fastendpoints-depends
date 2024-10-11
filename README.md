@@ -17,25 +17,23 @@
 ## Features
 
 - Only includes the plugins you need for the endpoint
-- No code changes needed. Just install and activate this plugin
-- Full support with [WP-FastEndpoints](https://github.com/matapatos/wp-fastendpoints)
+- No code changes needed. Just install and activate this plugin as an MU plugin
+- Full support with both native WP REST endpoints or [WP-FastEndpoints](https://github.com/matapatos/wp-fastendpoints)
 
 ## Requirements
 
 - PHP 8.1+
 - WordPress 6.x
 - [composer/installers](https://packagist.org/packages/composer/installers)
+- Install as a [must-use plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/)
 
 We aim to support versions that haven't reached their end-of-life.
 
 ## Installation
 
 1. Download plugin from WordPress store
-2. Activate plugin
-
-### Not using Bedrock?
-
-If not using [Bedrock](https://roots.io/bedrock/) make sure to install WP-FastEndpoints-Depends as a
-[must-use plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/)
+2. Install plugin as a [MU-plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/)
+3. Run the following WP CLI command `wp fastendpoints depends`
+4. Done! 😊
 
 FastEndpoints Depends was created by **[André Gil](https://www.linkedin.com/in/andre-gil/)** and is open-sourced software licensed under the **[MIT license](https://opensource.org/licenses/MIT)**.

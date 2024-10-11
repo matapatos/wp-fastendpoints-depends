@@ -2,7 +2,6 @@
 
 namespace Wp\FastEndpoints\Depends;
 
-use Wp\FastEndpoints\Contracts\Http\Router;
 use WP_CLI;
 
 /**
@@ -14,12 +13,12 @@ use WP_CLI;
  */
 class DependenciesGenerator
 {
-    /**
-     * Holds all registered FastEndpoints router
-     *
-     * @var array<Router>
-     */
-    protected array $allRegisteredRouters = [];
+    private ?string $configFilePath;
+
+    public function __construct(?string $configFilePath = null)
+    {
+        $this->configFilePath = $configFilePath;
+    }
 
     /**
      * Registers the logic to update the dependencies via the WP_CLI and
@@ -30,100 +29,133 @@ class DependenciesGenerator
         // Update dependencies on plugin activation
         register_activation_hook($filepath, $this->update(...));
         if ($this->isRunningCli()) {
-            WP_CLI::add_command('fast_endpoints_depends_update', $this->update(...));
+            WP_CLI::add_command('fastendpoints', DependsCommand::class);
         }
     }
 
     /**
-     * Updates the dependencies option via hooks
+     * Updates the REST endpoint dependencies
      */
     public function update(): void
     {
-        add_action('fastendpoints_after_register', $this->routerRegistered(...));
-        add_filter('wp_loaded', $this->updateDependenciesOption(...));
+        if (did_action('wp_loaded')) {
+            $this->updateDependenciesConfig();
+
+            return;
+        }
+        add_action('wp_loaded', $this->updateDependenciesConfig(...));
     }
 
     /**
-     * Called when a new FastEndpoints router is registered
+     * Retrieves the correspondent plugin full path from each dependency
      */
-    public function routerRegistered(Router $router): void
+    protected function getDependenciesPluginFullPath(array $dependencies, string $httpMethod, string $route): array
     {
-        $this->allRegisteredRouters[] = $router;
+        $fullPathDependencies = [];
+        $activePlugins = get_option('active_plugins', []);
+        foreach ($dependencies as $dependency) {
+            if (str_ends_with($dependency, '.php')) {
+                $fullPathDependencies[] = $dependency;
+
+                continue;
+            }
+
+            foreach ($activePlugins as $pluginFilepath) {
+                if (! str_contains($pluginFilepath, $dependency)) {
+                    continue;
+                }
+
+                if ($this->isRunningCli()) {
+                    WP_CLI::debug("[$httpMethod] $route updating dependency from $dependency to $pluginFilepath");
+                }
+                $fullPathDependencies[] = $pluginFilepath;
+                break;
+            }
+        }
+
+        return $fullPathDependencies;
+    }
+
+    /**
+     * Updates the dependencies config file
+     */
+    public function updateDependenciesConfig(): void
+    {
+        $this->markAsRunning();
+
+        $autoloader = new DependsAutoloader;
+        $autoloader->unregister();
+
+        $dependencies = $this->getRoutesDependencies();
+        $this->saveConfigFile($dependencies);
+
         if ($this->isRunningCli()) {
-            $numEndpoints = count($router->getEndpoints());
-            WP_CLI::debug("Detected router with $numEndpoints endpoints");
+            WP_CLI::success('REST route dependencies updated');
         }
     }
 
     /**
-     * Changes the dependencies slug with the corresponding plugin full path
+     * Yields each route available in the REST server
      */
-    public function changeDependenciesSlugWithPluginFullpath(array &$routersDependencies): void
+    protected function allRestRoutes(): iterable
     {
-        $activePlugins = wp_get_active_and_valid_plugins();
-        foreach ($routersDependencies as $method => &$methodDependencies) {
-            foreach ($methodDependencies as $route => &$dependencies) {
-                foreach ($dependencies as &$dependency) {
-                    if (str_ends_with($dependency, '.php')) {
-                        continue;
-                    }
-
-                    foreach ($activePlugins as $pluginFilepath) {
-                        if (! str_contains($pluginFilepath, path_join(WP_PLUGIN_DIR, $dependency))) {
+        $server = rest_get_server();
+        $numRoutes = count($server->get_routes());
+        $progressBar = $this->getProgressBar('Searching for route dependencies', $numRoutes);
+        foreach ($server->get_namespaces() as $namespace) {
+            $namespaceRoutes = $server->get_routes($namespace);
+            foreach ($namespaceRoutes as $route => $allRoutes) {
+                foreach ($allRoutes as $routeArgs) {
+                    $httpMethods = $routeArgs['methods'] ?? [];
+                    foreach ($httpMethods as $httpMethod => $enabled) {
+                        if (! $enabled) {
                             continue;
                         }
 
-                        if ($this->isRunningCli()) {
-                            WP_CLI::debug("[$method] $route updating dependency from $dependency to $pluginFilepath");
-                        }
-                        $dependency = $pluginFilepath;
+                        yield [
+                            'method' => $httpMethod,
+                            'route' => $route,
+                            'depends' => $routeArgs['depends'] ?? null,
+                        ];
                     }
+                    $progressBar->tick();
                 }
             }
         }
+        $progressBar->finish();
     }
 
     /**
-     * Updates the fastendpoints_dependencies option that holds all the registered endpoints
-     */
-    public function updateDependenciesOption(): void
-    {
-        $routersDependencies = $this->getDependenciesFromRouters($this->allRegisteredRouters);
-        if ($routersDependencies) {
-            $this->changeDependenciesSlugWithPluginFullpath($routersDependencies);
-        }
-
-        update_option('fastendpoints_dependencies', $routersDependencies);
-        if ($this->isRunningCli()) {
-            WP_CLI\Utils\format_items('json', $routersDependencies);
-            $numRouters = count($this->allRegisteredRouters);
-            WP_CLI::success("Successfully updated dependencies for $numRouters routers");
-        }
-    }
-
-    /**
-     * Retrieves all endpoint dependencies from a set of routers
+     * Retrieves the dependencies/plugins required per each REST route
      *
-     * @param array<Router>
-     * @return array<string,array<string,array<string>>>
+     * @return array<string,array<string,string>>
      */
-    protected function getDependenciesFromRouters(array $allRouters): array
+    protected function getRoutesDependencies(): array
     {
         $dependencies = [];
-        foreach ($allRouters as $router) {
-            foreach ($router->getEndpoints() as $endpoint) {
-                $allMethods = explode(',', $endpoint->getHttpMethod());
-                foreach ($allMethods as $method) {
-                    if (! isset($dependencies[$method])) {
-                        $dependencies[$method] = [];
-                    }
-                    $route = $endpoint->getFullRestRoute();
-                    $dependencies[$method][$route] = $endpoint->getRequiredPlugins();
+        foreach ($this->allRestRoutes() as $restRoute) {
+            $httpMethod = $restRoute['method'];
+            $route = $restRoute['route'];
+            $routeDependencies = $restRoute['depends'];
+            $routeDependencies = apply_filters('fastendpoints_depends_route', $routeDependencies, $httpMethod, $route);
+            if ($routeDependencies === null) {
+                continue;
+            }
+            if (! is_array($routeDependencies)) {
+                if ($this->isRunningCli()) {
+                    $varType = gettype($routeDependencies);
+                    WP_CLI::warning("[{$httpMethod}] {$route} Invalid dependencies. Expecting either null or an array but {$varType} given");
                 }
+
+                continue;
             }
 
-            $allSubRouters = $router->getSubRouters();
-            $dependencies = array_merge_recursive($dependencies, $this->getDependenciesFromRouters($allSubRouters));
+            if (! isset($dependencies[$httpMethod])) {
+                $dependencies[$httpMethod] = [];
+            }
+
+            $routeDependencies = $this->getDependenciesPluginFullPath($routeDependencies, $httpMethod, $route);
+            $dependencies[$httpMethod][$route] = $routeDependencies;
         }
 
         return $dependencies;
@@ -135,5 +167,71 @@ class DependenciesGenerator
     protected function isRunningCli(): bool
     {
         return defined('WP_CLI') && \WP_CLI;
+    }
+
+    /**
+     * Either retrieves a WP_CLI progress bar or a mock of it.
+     * A mock is retrieved to avoid adding multiple if checks when interacting with it.
+     *
+     * @param  string  $message  - The progress bar message to be displayed
+     * @param  int  $numItems  - The number of items to process
+     */
+    protected function getProgressBar(string $message, int $numItems)
+    {
+        if (! $this->isRunningCli()) {
+            return new class
+            {
+                public function tick(): void {}
+
+                public function finish(): void {}
+            };
+        }
+
+        return WP_CLI\Utils\make_progress_bar($message, $numItems);
+    }
+
+    /**
+     * Checks if it's running via CLI
+     */
+    protected function markAsRunning(): void
+    {
+        if (defined('FAST_ENDPOINTS_DEPENDS_UPDATE')) {
+            return;
+        }
+        define('FAST_ENDPOINTS_DEPENDS_UPDATE', true);
+    }
+
+    /**
+     * Updates the dependencies config file with the given route dependencies
+     */
+    protected function saveConfigFile(array $dependencies): void
+    {
+        $configFilePath = $this->getConfigFilePath();
+        if (! $dependencies) {
+            @unlink($configFilePath);
+
+            return;
+        }
+
+        $timestamp = date('c');
+        $data = "<?php # Generated ${timestamp}\r\n";
+        $data .= 'return '.var_export($dependencies, true).';';
+        file_put_contents($configFilePath, $data);
+    }
+
+    /**
+     * Retrieves the file path which holds the REST dependencies
+     */
+    public function getConfigFilePath(): string
+    {
+        if ($this->configFilePath) {
+            return $this->configFilePath;
+        }
+
+        if (defined('FASTENDPOINTS_DEPENDS_CONFIG_FILEPATH')) {
+            return \FASTENDPOINTS_DEPENDS_CONFIG_FILEPATH;
+        }
+
+        return plugin_dir_path(__FILE__).'/../config.php';
     }
 }
