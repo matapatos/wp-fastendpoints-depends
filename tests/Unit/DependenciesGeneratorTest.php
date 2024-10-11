@@ -17,7 +17,7 @@ use Brain\Monkey\Actions;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use Mockery;
-use Wp\FastEndpoints\Depends\FastEndpointDependenciesGenerator;
+use Wp\FastEndpoints\Depends\DependenciesGenerator;
 use Wp\FastEndpoints\Depends\Tests\Helpers\Helpers;
 use Wp\FastEndpoints\Router;
 
@@ -32,7 +32,7 @@ afterEach(function () {
 // register
 
 test('Register generator', function () {
-    $generator = new FastEndpointDependenciesGenerator;
+    $generator = new DependenciesGenerator;
     Functions\expect('register_activation_hook')
         ->once()
         ->with('/test/example.php', \Mockery::type('closure'));
@@ -40,7 +40,7 @@ test('Register generator', function () {
 })->group('generator', 'register');
 
 test('Register generator via CLI', function () {
-    $generator = Mockery::mock(FastEndpointDependenciesGenerator::class)
+    $generator = Mockery::mock(DependenciesGenerator::class)
         ->makePartial()
         ->shouldAllowMockingProtectedMethods()
         ->shouldReceive('isRunningCli')
@@ -59,7 +59,7 @@ test('Register generator via CLI', function () {
 // update
 
 test('Add hooks to update dependencies', function () {
-    $generator = new FastEndpointDependenciesGenerator;
+    $generator = new DependenciesGenerator;
     $generator->update();
     Actions\has('fastendpoints_after_register', $generator->routerRegistered(...));
     Filters\has('wp_loaded', $generator->updateDependenciesOption(...));
@@ -70,7 +70,7 @@ test('Add hooks to update dependencies', function () {
 // routerRegistered
 
 test('Registering FastEndpoints routers', function (int $numRouters) {
-    $generator = new FastEndpointDependenciesGenerator;
+    $generator = new DependenciesGenerator;
     $allRegisteredRouters = Helpers::getNonPublicClassProperty($generator, 'allRegisteredRouters');
     expect($allRegisteredRouters)
         ->toBeArray()
@@ -93,7 +93,7 @@ test('Registering FastEndpoints routers via CLI', function (int $numRouters) {
         ->times($numRouters)
         ->with('Detected router with 2 endpoints');
 
-    $generator = Mockery::mock(FastEndpointDependenciesGenerator::class)
+    $generator = Mockery::mock(DependenciesGenerator::class)
         ->makePartial()
         ->shouldAllowMockingProtectedMethods()
         ->shouldReceive('isRunningCli')
@@ -143,7 +143,7 @@ test('Updates dependencies option', function () {
             'POST' => ['/my-plugin' => ['/wp/plugins/buddypress/plugin.php', '/wp/plugins/my-plugin/plugin.php']],
         ]);
 
-    $generator = Mockery::mock(FastEndpointDependenciesGenerator::class)
+    $generator = Mockery::mock(DependenciesGenerator::class)
         ->makePartial()
         ->shouldAllowMockingProtectedMethods()
         ->shouldReceive('getDependenciesFromRouters')
@@ -187,7 +187,7 @@ test('Updates dependencies option via CLI', function () {
             'POST' => ['/my-plugin' => ['/wp/plugins/buddypress/plugin.php', '/wp/plugins/my-plugin/plugin.php']],
         ]);
 
-    $generator = Mockery::mock(FastEndpointDependenciesGenerator::class)
+    $generator = Mockery::mock(DependenciesGenerator::class)
         ->makePartial()
         ->shouldAllowMockingProtectedMethods()
         ->shouldReceive('getDependenciesFromRouters')
@@ -207,7 +207,7 @@ test('Updates dependencies option via CLI', function () {
 
 test('Retrieving dependencies from routers', function () {
     Functions\expect('register_rest_route');
-    $generator = new FastEndpointDependenciesGenerator;
+    $generator = new DependenciesGenerator;
     $firstRouter = new Router('api', 'v1');
     $firstRouter->get('/first', function () {
         return true;

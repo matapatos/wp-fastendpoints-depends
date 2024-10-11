@@ -12,7 +12,7 @@ use WP_CLI;
  *
  * @link https://github.com/matapatos/wp-fastendponts-depends
  */
-class FastEndpointDependenciesGenerator
+class DependenciesGenerator
 {
     /**
      * Holds all registered FastEndpoints router

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: Fast Endpoints Depends
+ * Plugin Name: FastEndpoints Depends
  * Plugin URI:  https://github.com/matapatos/wp-fastendponts-depends
  * Description: Speed up your REST endpoints by treating plugins as dependencies
  * Version:     1.0.0
@@ -27,5 +27,5 @@ require_once $composer;
 $autoloader = $autoloader ?? new \Wp\FastEndpoints\Depends\DependsAutoloader;
 $autoloader->register();
 
-$dependencies = $generator ?? new \Wp\FastEndpoints\Depends\FastEndpointDependenciesGenerator;
+$dependencies = $generator ?? new \Wp\FastEndpoints\Depends\DependenciesGenerator;
 $dependencies->register(__FILE__);
