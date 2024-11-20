@@ -33,7 +33,7 @@ We aim to support versions that haven't reached their end-of-life.
 
 1. Download plugin from WordPress store
 2. Install plugin as a [MU-plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/)
-3. Run the following WP CLI command `wp fastendpoints depends`
+3. Run the following WP CLI command `wp fastendpoints depends` or activate any plugin on the website - both triggers the dependencies generator
 4. Enjoy! 😊
 
 FastEndpoints Depends was created by **[André Gil](https://www.linkedin.com/in/andre-gil/)** and is open-sourced software licensed under the **[MIT license](https://opensource.org/licenses/MIT)**.
