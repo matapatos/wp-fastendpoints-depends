@@ -1,5 +1,5 @@
 {
   "exclude": [
-    "wp", "wp-content"
+    "wp", "wp-content", "tests/Data"
   ]
 }

@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Wp\FastEndpoints\Depends\Tests\Integration;
 
+use Wp\FastEndpoints\Depends\DependsAutoloader;
 use Wp\FastEndpoints\Depends\Tests\Helpers\Helpers;
 use Yoast\WPTestUtils\WPIntegration\TestCase;
 
@@ -28,76 +29,54 @@ uses(TestCase::class);
 
 beforeEach(function () {
     parent::setUp();
+    $autoloader = new DependsAutoloader(SAMPLE_CONFIG_FILEPATH);
+    $autoloader->unregister();
+    $autoloader->register();
 });
 
 afterEach(function () {
     parent::tearDown();
-    delete_option('fastendpoints_dependencies');
     delete_option('active_plugins');
     unset($_SERVER['REQUEST_URI']);
     unset($_SERVER['REQUEST_METHOD']);
 });
 
 test('Retrieves correct route dependencies', function () {
-    $routeDependencies = [
-        'GET' => [
-            '/custom/route' => ['custom-route', 'get', 'plugin-not-active'],
-            '/fake-route' => [],
-        ],
-        'POST' => [
-            '/custom/route' => ['custom-route', 'post'],
-        ],
-    ];
-    update_option('fastendpoints_dependencies', $routeDependencies);
-    update_option('active_plugins', ['my-plugin', 'custom-route', 'get']);
-    $_SERVER['REQUEST_URI'] = '/custom/route';
+    update_option('active_plugins', ['buddypress/buddypress.php', 'my-plugin/my-plugin.php', 'another-plugin/my-plugin.php']);
+    $_SERVER['REQUEST_URI'] = '/wp-json/my-plugin/v1/user';
     $_SERVER['REQUEST_METHOD'] = 'GET';
     expect(get_option('active_plugins'))
-        ->toEqual(['custom-route', 'get']);
+        ->toEqual(['buddypress/buddypress.php', 'my-plugin/my-plugin.php']);
 })->group('autoloader');
 
-test('No request method. Retrieves plugins all active plugins', function () {
-    $routeDependencies = [
-        'POST' => [
-            '/custom/route' => ['custom-route', 'post'],
-        ],
-    ];
-    update_option('fastendpoints_dependencies', $routeDependencies);
-    update_option('active_plugins', ['my-plugin', 'custom-route', 'put']);
-    $_SERVER['REQUEST_URI'] = '/custom/route';
+test('No request method. Retrieves all active plugins', function () {
+    update_option('active_plugins', ['active-plugin']);
+    $_SERVER['REQUEST_URI'] = '/wp-json/my-plugin/v1/user';
     $_SERVER['REQUEST_METHOD'] = 'PUT';
     expect(get_option('active_plugins'))
-        ->toEqual(['my-plugin', 'custom-route', 'put']);
+        ->toEqual(['active-plugin']);
 })->group('autoloader');
 
-test('No route dependencies. Retrieves plugins all active plugins', function () {
-    $routeDependencies = [
-        'GET' => [
-            '/custom/route' => ['custom-route', 'get', 'plugin-not-active'],
-            '/fake-route' => [],
-        ],
-        'POST' => [
-            '/custom/route' => ['custom-route', 'post'],
-        ],
-    ];
-    update_option('fastendpoints_dependencies', $routeDependencies);
+test('No request endpoint. Retrieves all active plugins', function () {
     update_option('active_plugins', ['active-plugin']);
-    $_SERVER['REQUEST_URI'] = '/unknown/route';
+    $_SERVER['REQUEST_URI'] = '/wp-json/doesnt-exist';
     $_SERVER['REQUEST_METHOD'] = 'GET';
     expect(get_option('active_plugins'))
         ->toEqual(['active-plugin']);
 })->group('autoloader');
 
-test('Regex route. Retrieves correct dependencies', function () {
-    $routeDependencies = [
-        'GET' => [
-            '/custom/route/(?P<ID>[\d]+)' => ['custom-route', 'get', 'plugin-not-active'],
-        ],
-    ];
-    update_option('fastendpoints_dependencies', $routeDependencies);
-    update_option('active_plugins', ['custom-route', 'get']);
-    $_SERVER['REQUEST_URI'] = '/custom/route/10';
-    $_SERVER['REQUEST_METHOD'] = 'GET';
+test('Endpoint does not require any plugin', function () {
+    update_option('active_plugins', ['active-plugin']);
+    $_SERVER['REQUEST_URI'] = '/wp-json/my-plugin/v1/no-depends';
+    $_SERVER['REQUEST_METHOD'] = 'POST';
     expect(get_option('active_plugins'))
-        ->toEqual(['custom-route', 'get']);
+        ->toEqual([]);
+})->group('autoloader');
+
+test('Regex route. Retrieves correct dependencies', function () {
+    update_option('active_plugins', ['my-plugin/my-plugin.php', 'buddypress/buddypress.php']);
+    $_SERVER['REQUEST_URI'] = '/wp-json/my-plugin/v1/blog-post/1';
+    $_SERVER['REQUEST_METHOD'] = 'DELETE';
+    expect(get_option('active_plugins'))
+        ->toEqual(['my-plugin/my-plugin.php']);
 })->group('autoloader');

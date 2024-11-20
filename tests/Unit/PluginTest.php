@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace Wp\FastEndpoints\Depends\Tests\Unit;
 
 use Brain\Monkey;
+use Wp\FastEndpoints\Depends\DependenciesGenerator;
 use Wp\FastEndpoints\Depends\DependsAutoloader;
-use Wp\FastEndpoints\Depends\FastEndpointDependenciesGenerator;
 
 beforeEach(function () {
     Monkey\setUp();
@@ -35,7 +35,7 @@ test('Registering both autoloader and generator', function () {
     $autoloader = \Mockery::mock(DependsAutoloader::class)
         ->shouldReceive('register')
         ->getMock();
-    $generator = \Mockery::mock(FastEndpointDependenciesGenerator::class)
+    $generator = \Mockery::mock(DependenciesGenerator::class)
         ->shouldReceive('register')
         ->withArgs(function (string $filepath) {
             return file_exists($filepath) && str_ends_with($filepath, 'fastendpoints-depends.php');

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Wp\FastEndpoints\Depends\Tests\Helpers;
 
+use Wp\FastEndpoints\Router;
+
 class Helpers
 {
     /**
@@ -69,5 +71,19 @@ class Helpers
     public static function isIntegrationTest(): bool
     {
         return isset($GLOBALS['argv']) && in_array('--group=integration', $GLOBALS['argv'], true);
+    }
+
+    /**
+     * Retrieves a router from a file
+     *
+     * @param  string  $filename  The router filename to be included
+     */
+    public static function getRouter(string $filename): Router
+    {
+        if (! str_ends_with($filename, '.php')) {
+            $filename = $filename.'.php';
+        }
+
+        return require \ROUTERS_DIR.$filename;
     }
 }

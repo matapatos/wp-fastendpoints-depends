@@ -1,5 +1,5 @@
 {
-  "name": "matapatos/wp-fastendpoints-depends",
+  "name": "matapatos/fastendpoints-depends",
   "type": "wordpress-muplugin",
   "description": "Speed up your REST endpoints by using plugins as dependencies",
   "keywords": [
@@ -13,7 +13,7 @@
   "require": {
     "php": "^8.1",
     "composer/installers": "^2.2",
-    "matapatos/wp-fastendpoints-contracts": "^0.9.0"
+    "matapatos/wp-fastendpoints-contracts": "^1.1"
   },
   "autoload": {
     "psr-4": {
@@ -34,7 +34,7 @@
     "brain/monkey": "2.*",
     "laravel/pint": "*",
     "pestphp/pest-plugin-parallel": "^1.2",
-    "matapatos/wp-fastendpoints": "^2.0"
+    "matapatos/wp-fastendpoints": "^2.1"
   },
   "scripts": {
     "lint": "./vendor/bin/pint --config pint.json",

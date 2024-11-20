@@ -16,6 +16,13 @@ class DependsAutoloader
     /** @var ?static Singleton instance */
     protected static ?DependsAutoloader $instance = null;
 
+    private ?string $configFilePath;
+
+    public function __construct(?string $configFilePath = null)
+    {
+        $this->configFilePath = $configFilePath;
+    }
+
     /**
      * Registers the filter that removes unnecessary plugins for a given REST endpoint
      */
@@ -26,7 +33,7 @@ class DependsAutoloader
         }
 
         self::$instance = $this;
-        add_filter('option_active_plugins', $this->discardUnnecessaryPlugins(...));
+        add_filter('option_active_plugins', $this->discardUnnecessaryPlugins(...), -99);
     }
 
     /**
@@ -47,7 +54,12 @@ class DependsAutoloader
         }
 
         foreach ($fastEndpointsDependencies as $route => $routeDependencies) {
-            if (! preg_match('@^'.$route.'$@i', $currentUrlPath, $matches)) {
+            $fullRestRoute = '/'.rest_get_url_prefix();
+            if (! str_starts_with($route, '/')) {
+                $fullRestRoute .= '/';
+            }
+            $fullRestRoute .= $route;
+            if (! preg_match('@^'.$fullRestRoute.'$@i', $currentUrlPath, $matches)) {
                 continue;
             }
 
@@ -66,7 +78,12 @@ class DependsAutoloader
      */
     protected function getFastEndpointDependencies(): array
     {
-        $allEndpoints = get_option('fastendpoints_dependencies');
+        $configFilePath = $this->getConfigFilePath();
+        if (! file_exists($configFilePath)) {
+            return [];
+        }
+
+        $allEndpoints = include $configFilePath;
         if (! $allEndpoints) {
             return [];
         }
@@ -154,5 +171,30 @@ class DependsAutoloader
         }
 
         return wp_parse_url(add_query_arg([]))['path'];
+    }
+
+    /**
+     * Removes all hooks that trigger this autoloader
+     */
+    public function unregister(): void
+    {
+        self::$instance = null;
+        remove_filter('option_active_plugins', $this->discardUnnecessaryPlugins(...));
+    }
+
+    /**
+     * Retrieves the file path which holds the REST dependencies
+     */
+    protected function getConfigFilePath(): string
+    {
+        if ($this->configFilePath) {
+            return $this->configFilePath;
+        }
+
+        if (defined('FASTENDPOINTS_DEPENDS_CONFIG_FILEPATH')) {
+            return \FASTENDPOINTS_DEPENDS_CONFIG_FILEPATH;
+        }
+
+        return plugin_dir_path(__FILE__).'/../config.php';
     }
 }
