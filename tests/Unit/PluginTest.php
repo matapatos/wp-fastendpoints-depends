@@ -37,9 +37,6 @@ test('Registering both autoloader and generator', function () {
         ->getMock();
     $generator = \Mockery::mock(DependenciesGenerator::class)
         ->shouldReceive('register')
-        ->withArgs(function (string $filepath) {
-            return file_exists($filepath) && str_ends_with($filepath, 'fastendpoints-depends.php');
-        })
         ->getMock();
     require_once \PLUGIN_ROOT_DIR.'/fastendpoints-depends.php';
     // Avoid "Test did not perform any assertions" message

@@ -32,10 +32,10 @@ afterEach(function () {
 
 test('Register generator', function () {
     $generator = new DependenciesGenerator;
-    Functions\expect('register_activation_hook')
+    Actions\expectAdded('activated_plugin')
         ->once()
-        ->with('/test/example.php', \Mockery::type('closure'));
-    $generator->register('/test/example.php');
+        ->with(Mockery::type('closure'));
+    $generator->register();
 })->group('generator', 'register');
 
 test('Register generator via CLI', function () {
@@ -45,14 +45,16 @@ test('Register generator via CLI', function () {
         ->shouldReceive('isRunningCli')
         ->andReturn(true)
         ->getMock();
-    Functions\expect('register_activation_hook')
+    Actions\expectAdded('activated_plugin')
         ->once()
-        ->with('/test/example.php', Mockery::type('closure'));
+        ->with(Mockery::type('closure'));
     Mockery::mock('alias:WP_CLI')
         ->shouldReceive('add_command')
         ->once()
         ->with('fastendpoints', DependsCommand::class);
-    $generator->register('/test/example.php');
+    $reflection = new \ReflectionProperty(DependenciesGenerator::class, 'isToUpdateOnPluginActivation');
+    $reflection->setValue($generator, true);
+    $generator->register();
 })->group('generator', 'register');
 
 // update
