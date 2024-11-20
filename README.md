@@ -10,7 +10,7 @@
 </p>
 
 ------
-**FastEndpoints Depends** is a way of treating plugins as dependencies to speed up your [WP-FastEndpoints](https://github.com/matapatos/wp-fastendpoints).
+**FastEndpoints Depends** is a way of treating plugins as dependencies to speed up your REST endpoints
 
 - Explore our docs at **[FastEndpoints Depends Docs »](https://matapatos.github.io/wp-fastendpoints/advanced-user-guide/plugins-as-dependencies/)**
 
@@ -18,7 +18,7 @@
 
 - Only includes the plugins you need for the endpoint
 - No code changes needed. Just install and activate this plugin as an MU plugin
-- Full support with both native WP REST endpoints or [WP-FastEndpoints](https://github.com/matapatos/wp-fastendpoints)
+- Full support to both native WP REST endpoints and [WP-FastEndpoints](https://github.com/matapatos/wp-fastendpoints)
 
 ## Requirements
 
@@ -34,6 +34,6 @@ We aim to support versions that haven't reached their end-of-life.
 1. Download plugin from WordPress store
 2. Install plugin as a [MU-plugin](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/)
 3. Run the following WP CLI command `wp fastendpoints depends`
-4. Done! 😊
+4. Enjoy! 😊
 
 FastEndpoints Depends was created by **[André Gil](https://www.linkedin.com/in/andre-gil/)** and is open-sourced software licensed under the **[MIT license](https://opensource.org/licenses/MIT)**.
