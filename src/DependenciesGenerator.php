@@ -15,19 +15,23 @@ class DependenciesGenerator
 {
     private ?string $configFilePath;
 
-    public function __construct(?string $configFilePath = null)
+    private bool $isToUpdateOnPluginActivation;
+
+    public function __construct(?string $configFilePath = null, bool $isToUpdateOnPluginActivation = true)
     {
         $this->configFilePath = $configFilePath;
+        $this->isToUpdateOnPluginActivation = $isToUpdateOnPluginActivation;
     }
 
     /**
-     * Registers the logic to update the dependencies via the WP_CLI and
-     * when the plugin is activated
+     * Registers the logic to update the dependencies via the WP_CLI and when a plugin is activated
      */
-    public function register(string $filepath): void
+    public function register(): void
     {
-        // Update dependencies on plugin activation
-        register_activation_hook($filepath, $this->update(...));
+        if ($this->isToUpdateOnPluginActivation) {
+            add_action('activated_plugin', $this->update(...));
+        }
+
         if ($this->isRunningCli()) {
             WP_CLI::add_command('fastendpoints', DependsCommand::class);
         }
@@ -36,7 +40,7 @@ class DependenciesGenerator
     /**
      * Updates the REST endpoint dependencies
      */
-    public function update(): void
+    public function update($plugin = null): void
     {
         if (did_action('wp_loaded')) {
             $this->updateDependenciesConfig();

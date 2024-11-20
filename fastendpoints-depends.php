@@ -27,5 +27,6 @@ require_once $composer;
 $autoloader = $autoloader ?? new \Wp\FastEndpoints\Depends\DependsAutoloader;
 $autoloader->register();
 
-$dependencies = $generator ?? new \Wp\FastEndpoints\Depends\DependenciesGenerator;
-$dependencies->register(__FILE__);
+$isToUpdateOnPluginActivation = defined('FASTENDPOINTS_DEPENDS_REFRESH_ON_PLUGIN_ACTIVATION') ? \FASTENDPOINTS_DEPENDS_REFRESH_ON_PLUGIN_ACTIVATION : true;
+$dependencies = $generator ?? new \Wp\FastEndpoints\Depends\DependenciesGenerator(null, $isToUpdateOnPluginActivation);
+$dependencies->register();
